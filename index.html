@@ -106,6 +106,8 @@
             const existingData = [...teamData];
             teamData = [];
             teamMembersDiv.innerHTML = '';
+            selectedUser = '';
+            selectedUserLastName = '';
 
             for (let i = 0; i < teamSize; i++) {
                 let firstName = existingData[i]?.firstName || '';
