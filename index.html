@@ -43,7 +43,17 @@
         .team-member-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+            white-space: nowrap;
+        }
+
+        .radio-label input {
+            margin-right: 5px;
         }
 
         #total-points {
@@ -87,6 +97,7 @@
     <script>
         let teamData = [];
         let selectedUser = '';
+        let selectedUserLastName = '';
 
         function generateTeamInputs() {
             const teamSize = parseInt(document.getElementById('team-size').value);
@@ -107,10 +118,13 @@
                 memberDiv.innerHTML = `
                 <div class="team-member-header">
                     <h3>Team Member ${i + 1}</h3>
-                    <label><input type="radio" name="userSelection" value="${lastName}" onchange="setSelectedUser('${lastName}')"> (This is me)</label>
+                    <label class="radio-label" style="margin-left: 20px; white-space: nowrap;">
+                        <input type="radio" name="userSelection" onchange="setSelectedUser(this)">
+                        (This is me)
+                    </label>
                 </div>
-                <input type="text" placeholder="First Name" class="first-name" value="${firstName}" oninput="updateTeamData(${i}, 'firstName', this.value)" required>
-                <input type="text" placeholder="Last Name" class="last-name" value="${lastName}" oninput="updateTeamData(${i}, 'lastName', this.value)" required>
+                <input type="text" placeholder="First Name" class="first-name" value="${firstName}" oninput="updateTeamData(${i}, 'firstName', this.value); updateRadioButton(${i})" required>
+                <input type="text" placeholder="Last Name" class="last-name" value="${lastName}" oninput="updateTeamData(${i}, 'lastName', this.value); updateRadioButton(${i})" required>
                 <input type="number" placeholder="Points (Positive Integer)" class="points" min="1" value="${points}" oninput="updateTeamData(${i}, 'points', this.value); updateTotalPoints();" required>
                 <p class="error" id="error-${i}"></p>
             `;
@@ -120,12 +134,31 @@
             updateTotalPoints();
         }
 
-        function setSelectedUser(lastName) {
-            selectedUser = lastName;
+        function setSelectedUser(radio) {
+            const parentDiv = radio.closest('.team-member');
+            const firstName = parentDiv.querySelector('.first-name').value.trim();
+            const lastName = parentDiv.querySelector('.last-name').value.trim();
+            selectedUser = `${firstName} ${lastName}`;
+            selectedUserLastName = lastName;
+            // console.log("Selected User:", selectedUser);
+            // console.log("Selected User Last Name:", selectedUserLastName);
+        }
+
+        function updateRadioButton(index) {
+            const firstName = document.querySelectorAll('.first-name')[index].value.trim();
+            const lastName = document.querySelectorAll('.last-name')[index].value.trim();
+            const radio = document.querySelectorAll('input[name="userSelection"]')[index];
+            radio.value = `${firstName} ${lastName}`;
+            if (selectedUser === `${firstName} ${lastName}`) {
+                radio.checked = true;
+            }
         }
 
         function updateTeamData(index, field, value) {
             teamData[index][field] = value;
+            if (field === 'lastName' && selectedUser.includes(teamData[index].firstName)) {
+                selectedUserLastName = value.trim();
+            }
         }
 
         function updateTotalPoints() {
@@ -208,12 +241,13 @@
             csvValues.push(`"${explanation}"`);
 
             let csvContent = `${csvHeader.join(',')}
-${csvValues.join(',')}`;
+
+            ${csvValues.join(',')}`;
 
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${String(teamNumber).padStart(3, '0')}_team_member_assessment_${selectedUser}.csv`;
+            link.download = `${String(teamNumber).padStart(3, '0')}_team_member_assessment_${selectedUserLastName}.csv`;
             link.click();
         }
 

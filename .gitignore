@@ -1,0 +1,6 @@
+# Ignore all CSV files
+*.csv
+
+# Ignore the folders and all subdirectories
+/admin/
+/output/
