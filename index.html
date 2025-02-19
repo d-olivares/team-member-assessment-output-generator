@@ -141,8 +141,6 @@
             const lastName = parentDiv.querySelector('.last-name').value.trim();
             selectedUser = `${firstName} ${lastName}`;
             selectedUserLastName = lastName;
-            // console.log("Selected User:", selectedUser);
-            // console.log("Selected User Last Name:", selectedUserLastName);
         }
 
         function updateRadioButton(index) {
@@ -228,7 +226,7 @@
                     return;
                 }
 
-                csvHeader.push(`${lastName} ${firstName}`);
+                csvHeader.push(`${lastName} ${firstName}`.trim());
                 csvValues.push(point);
                 totalAllocated += point;
             }
@@ -239,11 +237,9 @@
             }
 
             csvHeader.push("Explanation");
-            csvValues.push(`"${explanation}"`);
+            csvValues.push(`"${explanation.trim()}"`);
 
-            let csvContent = `${csvHeader.join(',')}
-
-            ${csvValues.join(',')}`;
+            let csvContent = `${csvHeader.join(',')}\n${csvValues.join(',')}`;
 
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const link = document.createElement('a');
