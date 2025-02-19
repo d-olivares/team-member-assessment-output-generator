@@ -40,6 +40,12 @@
             background-color: #f9f9f9;
         }
 
+        .team-member-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         #total-points {
             font-weight: bold;
             margin: 10px 0;
@@ -80,6 +86,7 @@
 
     <script>
         let teamData = [];
+        let selectedUser = '';
 
         function generateTeamInputs() {
             const teamSize = parseInt(document.getElementById('team-size').value);
@@ -98,7 +105,10 @@
                 const memberDiv = document.createElement('div');
                 memberDiv.classList.add('team-member');
                 memberDiv.innerHTML = `
-                <h3>Team Member ${i + 1}</h3>
+                <div class="team-member-header">
+                    <h3>Team Member ${i + 1}</h3>
+                    <label><input type="radio" name="userSelection" value="${lastName}" onchange="setSelectedUser('${lastName}')"> (This is me)</label>
+                </div>
                 <input type="text" placeholder="First Name" class="first-name" value="${firstName}" oninput="updateTeamData(${i}, 'firstName', this.value)" required>
                 <input type="text" placeholder="Last Name" class="last-name" value="${lastName}" oninput="updateTeamData(${i}, 'lastName', this.value)" required>
                 <input type="number" placeholder="Points (Positive Integer)" class="points" min="1" value="${points}" oninput="updateTeamData(${i}, 'points', this.value); updateTotalPoints();" required>
@@ -108,6 +118,10 @@
             }
 
             updateTotalPoints();
+        }
+
+        function setSelectedUser(lastName) {
+            selectedUser = lastName;
         }
 
         function updateTeamData(index, field, value) {
@@ -148,6 +162,11 @@
             const explanation = document.getElementById('explanation').value.trim();
             const errorMessage = document.getElementById('error-message');
 
+            if (!selectedUser) {
+                alert("Please select which team member you are.");
+                return;
+            }
+
             if (!Number.isInteger(teamNumber) || teamNumber <= 0) {
                 alert("Please enter a valid positive integer for team number.");
                 return;
@@ -158,8 +177,10 @@
             let csvHeader = [];
             let csvValues = [];
 
-            for (let i = 0; i < teamData.length; i++) {
-                const { firstName, lastName, points } = teamData[i];
+            const sortedData = teamData.slice().sort((a, b) => a.lastName.localeCompare(b.lastName));
+
+            for (let i = 0; i < sortedData.length; i++) {
+                const { firstName, lastName, points } = sortedData[i];
                 const point = parseInt(points);
 
                 if (!firstName || !lastName || !Number.isInteger(point) || point <= 0) {
@@ -192,7 +213,7 @@ ${csvValues.join(',')}`;
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${String(teamNumber).padStart(3, '0')}_team_member_assessment.csv`;
+            link.download = `${String(teamNumber).padStart(3, '0')}_team_member_assessment_${selectedUser}.csv`;
             link.click();
         }
 
