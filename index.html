@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Member Assessment Output Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        input,
+        select,
+        button,
+        textarea {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .team-member {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        #total-points {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .error {
+            color: red;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Team Member Assessment Output Generator</h1>
+
+        <label for="team-number">Team Number:</label>
+        <input type="number" id="team-number" placeholder="Enter Team Number" min="1" required>
+
+        <label for="team-size">Select Number of Team Members:</label>
+        <select id="team-size" onchange="generateTeamInputs()">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </select>
+
+        <div id="team-members"></div>
+
+        <p id="total-points">Total Points Available: 300</p>
+        <p id="error-message" class="error"></p>
+
+        <label for="explanation">Explanation of Point Discrepancy (if required):</label>
+        <textarea id="explanation" rows="4" placeholder="Explain here..." required></textarea>
+
+        <button onclick="generateCSV()">Submit Form and Generate CSV</button>
+    </div>
+
+    <script>
+        let teamData = [];
+
+        function generateTeamInputs() {
+            const teamSize = parseInt(document.getElementById('team-size').value);
+            const teamMembersDiv = document.getElementById('team-members');
+            const existingData = [...teamData];
+            teamData = [];
+            teamMembersDiv.innerHTML = '';
+
+            for (let i = 0; i < teamSize; i++) {
+                let firstName = existingData[i]?.firstName || '';
+                let lastName = existingData[i]?.lastName || '';
+                let points = existingData[i]?.points || '';
+
+                teamData.push({ firstName, lastName, points });
+
+                const memberDiv = document.createElement('div');
+                memberDiv.classList.add('team-member');
+                memberDiv.innerHTML = `
+                <h3>Team Member ${i + 1}</h3>
+                <input type="text" placeholder="First Name" class="first-name" value="${firstName}" oninput="updateTeamData(${i}, 'firstName', this.value)" required>
+                <input type="text" placeholder="Last Name" class="last-name" value="${lastName}" oninput="updateTeamData(${i}, 'lastName', this.value)" required>
+                <input type="number" placeholder="Points (Positive Integer)" class="points" min="1" value="${points}" oninput="updateTeamData(${i}, 'points', this.value); updateTotalPoints();" required>
+                <p class="error" id="error-${i}"></p>
+            `;
+                teamMembersDiv.appendChild(memberDiv);
+            }
+
+            updateTotalPoints();
+        }
+
+        function updateTeamData(index, field, value) {
+            teamData[index][field] = value;
+        }
+
+        function updateTotalPoints() {
+            const pointsInputs = document.querySelectorAll('.points');
+            const teamSize = pointsInputs.length;
+            const totalPoints = 100 * teamSize;
+            let allocatedPoints = 0;
+
+            pointsInputs.forEach(input => {
+                const value = parseInt(input.value);
+                if (!Number.isInteger(value) || value <= 0) {
+                    input.nextElementSibling.innerText = 'Points must be a positive integer.';
+                } else {
+                    input.nextElementSibling.innerText = '';
+                }
+                allocatedPoints += value || 0;
+            });
+
+            const remainingPoints = totalPoints - allocatedPoints;
+            document.getElementById('total-points').innerText = `Total Points Available: ${remainingPoints}`;
+            const errorMessage = document.getElementById('error-message');
+
+            if (remainingPoints < 0) {
+                errorMessage.innerText = 'Total points distributed exceed the available points.';
+            } else if (remainingPoints > 0) {
+                errorMessage.innerText = 'All available points must be distributed.';
+            } else {
+                errorMessage.innerText = '';
+            }
+        }
+
+        function generateCSV() {
+            const teamNumber = parseInt(document.getElementById('team-number').value.trim());
+            const explanation = document.getElementById('explanation').value.trim();
+            const errorMessage = document.getElementById('error-message');
+
+            if (!Number.isInteger(teamNumber) || teamNumber <= 0) {
+                alert("Please enter a valid positive integer for team number.");
+                return;
+            }
+
+            let totalAllocated = 0;
+            let totalPoints = 100 * teamData.length;
+            let csvHeader = [];
+            let csvValues = [];
+
+            for (let i = 0; i < teamData.length; i++) {
+                const { firstName, lastName, points } = teamData[i];
+                const point = parseInt(points);
+
+                if (!firstName || !lastName || !Number.isInteger(point) || point <= 0) {
+                    alert("Please fill all fields correctly for each team member.");
+                    return;
+                }
+
+                let discrepancy = Math.abs(100 - point) / 100;
+                if (discrepancy >= 0.2 && !explanation) {
+                    alert(`Discrepancy of 20% or greater detected for ${firstName} ${lastName}. Please provide an explanation.`);
+                    return;
+                }
+
+                csvHeader.push(`${lastName} ${firstName}`);
+                csvValues.push(point);
+                totalAllocated += point;
+            }
+
+            if (totalAllocated !== totalPoints) {
+                errorMessage.innerText = `Total points allocated must be exactly ${totalPoints}. Currently allocated: ${totalAllocated}.`;
+                return;
+            }
+
+            csvHeader.push("Explanation");
+            csvValues.push(`"${explanation}"`);
+
+            let csvContent = `${csvHeader.join(',')}
+${csvValues.join(',')}`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${String(teamNumber).padStart(3, '0')}_team_member_assessment.csv`;
+            link.click();
+        }
+
+        window.onload = generateTeamInputs;
+    </script>
+</body>
+
+</html>
